@@ -10,13 +10,14 @@ import random
 from random import choice
 from string import ascii_uppercase
 from itertools import groupby
+from datetime import datetime
 
 pagemod = 0  # 1 - full page site
 log_mod = 1  # 1-log ||| 0 - nolog
 req_verif = 0  # 1-no verife
 js_download = 0  # 1 - download java script ||| 0 - no script
 clean_brand = 0
-
+now = datetime.now()
 url_type = 0
 filenum = 1
 file_num = 0
@@ -45,6 +46,7 @@ def Start():
     input()
     main_page = driver.page_source
     driver.quit()
+    start_time = datetime.now()
     with open('brand_list_3.json', 'r') as f:
         list_brands = json.load(f)
     os.chdir('./vites')
@@ -126,6 +128,7 @@ def Start():
                 print(f"[data:image DLT]")
 
             elif 'css' in content_type or 'image' in content_type:
+            # elif 'css' in content_type or 'image' in content_type or 'application/javascript' in content_type:
                 file = prename + content_type.split('/')[0] + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
                 print(f"[save fail patch]: {file}")
                 with open(file, 'wb') as outfile:
@@ -224,6 +227,7 @@ def Start():
         html_new = re.sub(r"<noscript[\s\S]*?>[\s\S]*?<\/noscript>", '', html_new, flags=re.M)
         print('clean - noscript')
         html_new = re.sub(r'onclick=".*?"', '', html_new, flags=re.M)
+        html_new = re.sub(r'<meta.*?>', '', html_new, flags=re.M)
         html_new = re.sub(r'[\'|\"|\(](data:image.*?)[\'|\"|\)]', '', html_new, flags=re.M)
 
         os.mkdir(prename + 'image')
@@ -292,11 +296,11 @@ def Start():
                     for url_in_css_item in url_in_css:
                         text_css = asyncio.run(SaveUrl(url_for_donload, url_in_css_item, text_css, url_type))
                         # text_css = text_css.replace('url(', 'url(/')
-                        text_css = text_css.replace(';', ';\n')
-                        text_css = text_css.replace('}', '}\n\n')
-                        text_css = text_css.replace('{', '{\n')
-                        while '\n\n' in text_css:
-                            text_css = text_css.replace('\n\n', '\n')
+                        # text_css = text_css.replace(';', ';\n')
+                        # text_css = text_css.replace('}', '}\n\n')
+                        # text_css = text_css.replace('{', '{\n')
+                        # while '\n\n' in text_css:
+                        #     text_css = text_css.replace('\n\n', '\n')
                     with open(prename + 'text/'+css_file, 'w') as file_css_2:
                         file_css_2.write(text_css)
                 except UnicodeDecodeError:
@@ -304,20 +308,33 @@ def Start():
 
         html_new = CleaninHTML(html_new)
 
-        while '\n\n' in html_new:
-            html_new = html_new.replace('\n\n', '\n')
 
         if clean_brand == 1:
             html_new = Clean_Brands(html_new)
 
+        link_rels = re.findall(r"(<link.*?>)", html_new, flags=re.M)
+        for link in link_rels:
+            if prename in link:
+                pass
+            else:
+                html_new = html_new.replace(link, '')
+
         html_new = html_new.replace('</title>',
                                     f'</title>\n<link href="{prename}text/{prename}style.css" rel="stylesheet" type="text/css"/>')
+        html_new = html_new.replace('</title>',
+                                    f'</title>\n<meta charset="utf-8"/>')
+
+        while '\n\n' in html_new:
+            html_new = html_new.replace('\n\n', '\n')
 
         with open('index.html', 'w', encoding='UTF-8') as html_index:
             html_index.write(html_new)
+
         print('\n---- ' + filename + ' ----\n')
 
     StartParsHTML()
+    print('\nall work time - ' + str(datetime.now() - now))
+    print('\nwork time download - ' + str(datetime.now() - start_time))
 
 
 if __name__ == "__main__":
