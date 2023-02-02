@@ -12,6 +12,7 @@ from string import ascii_uppercase
 from itertools import groupby
 from datetime import datetime
 
+chdir_path = 'tr'
 pagemod = 0  # 1 - full page site
 log_mod = 1  # 1-log ||| 0 - nolog
 req_verif = 0  # 1-no verife
@@ -23,7 +24,8 @@ filenum = 1
 file_num = 0
 page_num = 0
 prename = ''.join(choice(ascii_uppercase) for i in range(random.randint(3, 8)))
-headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36'}
+headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) '
+           'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36'}
 
 def Start():
     print('print url')
@@ -31,7 +33,7 @@ def Start():
     print('go')
     options = uc.ChromeOptions()
     print('5')
-    options.add_argument(f"--incognito")#incognito
+    options.add_argument(f"--incognito")
     print('4')
     options.add_argument(f"--window-size={random.randint(1000, 1500)},{random.randint(600, 1000)}")
     print('3')
@@ -49,7 +51,7 @@ def Start():
     start_time = datetime.now()
     with open('brand_list_3.json', 'r') as f:
         list_brands = json.load(f)
-    os.chdir('./vites')
+    os.chdir(f'./{chdir_path}')
 
     def Replace_01(old_str, new_str, orig_str):
         print(f"[first pattern]:  {old_str}")
@@ -129,7 +131,10 @@ def Start():
 
             elif 'css' in content_type or 'image' in content_type:
             # elif 'css' in content_type or 'image' in content_type or 'application/javascript' in content_type:
-                file = prename + content_type.split('/')[0] + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
+                if 'application/javascript' in content_type:
+                    file = prename + 'text' + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
+                else:
+                    file = prename + content_type.split('/')[0] + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
                 print(f"[save fail patch]: {file}")
                 with open(file, 'wb') as outfile:
                     outfile.write(req.content)
@@ -227,7 +232,7 @@ def Start():
         html_new = re.sub(r"<noscript[\s\S]*?>[\s\S]*?<\/noscript>", '', html_new, flags=re.M)
         print('clean - noscript')
         html_new = re.sub(r'onclick=".*?"', '', html_new, flags=re.M)
-        html_new = re.sub(r'<meta.*?>', '', html_new, flags=re.M)
+        # html_new = re.sub(r'<meta.*?>', '', html_new, flags=re.M)
         html_new = re.sub(r'[\'|\"|\(](data:image.*?)[\'|\"|\)]', '', html_new, flags=re.M)
 
         os.mkdir(prename + 'image')
