@@ -131,17 +131,35 @@ def Start():
 
             elif 'css' in content_type or 'image' in content_type:
             # elif 'css' in content_type or 'image' in content_type or 'application/javascript' in content_type:
-                if 'application/javascript' in content_type:
-                    file = prename + 'text' + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
+            #     if 'application/javascript' in content_type:
+            #         file = prename + 'text' + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
+            #     else:
+            #         file = prename + content_type.split('/')[0] + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
+            #     print(f"[save fail patch]: {file}")
+                url = url_down
+                if '//' in url:
+                    url = '/'.join(url.split('/')[3:])
+                if url[0:1] == '/':
+                    url = url[1:]
+
+                paths = url.split('/')[:-1]
+                file_name = url.split('/')[-1]
+                all_path = ''
+                for path in paths:
+                    all_path = all_path + '/' + path
+                    if all_path[:1] == '/':
+                        all_path = all_path[1:]
+                    if not os.path.exists(all_path):
+                        os.mkdir(all_path)
+                print(url)
+                with open(f'{url}', 'wb') as file:
+                    file.write(req.content)
+                # with open(file, 'wb') as outfile:
+                #     outfile.write(req.content)
+                if url_type == 1:
+                    html_new = Replace_01(urls, '/' + url, html_new)
                 else:
-                    file = prename + content_type.split('/')[0] + '/' + prename + str(file_num) + '.' + content_type.split('/')[1]
-                print(f"[save fail patch]: {file}")
-                with open(file, 'wb') as outfile:
-                    outfile.write(req.content)
-                    if url_type == 1:
-                        html_new = Replace_01(urls, '/' + file, html_new)
-                    else:
-                        html_new = Replace_01(urls, file, html_new)
+                    html_new = Replace_01(urls, url, html_new)
 
             elif ('html' in content_type) and (filename in url_down) and (int(len(urls)) > 3):
                 if pagemod == 1:
