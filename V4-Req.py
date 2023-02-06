@@ -10,7 +10,7 @@ import requests
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-chdir_path = 'ru'
+chdir_path = 'test'
 rep_href_a = 0
 prename = ''.join(choice(ascii_uppercase) for i in range(random.randint(3, 8)))
 
@@ -55,11 +55,37 @@ def Start():
             if 'data:image' in urls:
                 list_url[file_writing][urls] = ''
             elif 'css' in content_type or 'image' in content_type:
-                file = prename + content_type.split('/')[0] + '/' + prename + str(file_num) + '.' + \
-                       content_type.split('/')[1]
-                with open(file, 'wb') as outfile:
-                    outfile.write(req.content)
-                list_url[file_writing][urls] = file
+                url = urls
+                if '//' in url:
+                    url = '/'.join(url.split('/')[3:])
+                if url[0:1] == '/':
+                    url = url[1:]
+
+                paths = url.split('/')[:-1]
+                file_name = url.split('/')[-1]
+                all_path = ''
+                for path in paths:
+                    all_path = all_path + '/' + path
+                    if all_path[:1] == '/':
+                        all_path = all_path[1:]
+                    if not os.path.exists(all_path):
+                        os.mkdir(all_path)
+                print(url)
+                with open(f'{url}', 'wb') as file:
+                    file.write(req.content)
+                list_url[file_writing][urls] = url
+                # with open(file, 'wb') as outfile:
+                #     outfile.write(req.content)
+                # if url_type == 1:
+                #     html_new = Replace_01(urls, '/' + url, html_new)
+                # else:
+                # html_new = Replace_01(urls, url, html_new)
+
+                # file = prename + content_type.split('/')[0] + '/' + prename + str(file_num) + '.' + \
+                #        content_type.split('/')[1]
+                # with open(file, 'wb') as outfile:
+                #     outfile.write(req.content)
+                # list_url[file_writing][urls] = file
             else:
                 list_url[file_writing][urls] = ''
         except requests.exceptions.SSLError:
@@ -100,14 +126,14 @@ def Start():
                 itss = its.split(' ')[0]
                 # html_new = html_new.replace(its, itss)
                 html_new = html_new.replace(its, itss)
-        html_new_href = re.findall(r"(href=[\"|\'].*?[\"|\'])", html_new, flags=re.M)
-        for it in html_new_href:
-            if prename not in it:
-                # html_new = html_new.replace(it, '')
-                if rep_href_a == 1:
-                    html_new = html_new.replace(it, '')
-                else:
-                    html_new = html_new.replace(it, 'href="/"')
+        # html_new_href = re.findall(r"(href=[\"|\'].*?[\"|\'])", html_new, flags=re.M)
+        # for it in html_new_href:
+        #     if prename not in it:
+        #         # html_new = html_new.replace(it, '')
+        #         if rep_href_a == 1:
+        #             html_new = html_new.replace(it, '')
+        #         else:
+        #             html_new = html_new.replace(it, 'href="/"')
 
         link_rels = re.findall(r"(<link.*?>)", html_new, flags=re.M)
         for link in link_rels:
@@ -145,9 +171,21 @@ def Start():
         html_new = re.sub(r'[\'|\"|\(](data:image.*?)[\'|\"|\)]', '', html_new, flags=re.M)
         return html_new
 
+    def new_cleaning_html_file(string):
+        string = re.sub(r"<noscript[\s\S]*?<\/noscript>", '', string, flags=re.M)
+        string = re.sub(r"<script[\s\S]*?<\/script>", '', string, flags=re.M)
+        string = re.sub(r"<iframe[\s\S]*?<\/iframe>", '', string, flags=re.M)
+        # string = re.sub(r"http[\S]*?\"", '"', string, flags=re.M)
+        # string = re.sub(r"http[\S]*?\'", "'", string, flags=re.M)
+        string = re.sub(r"\<\!--[\s\S]*?\n?[\s\S]*?--\>", "", string, flags=re.M)
+        string_href = re.findall(r"(http.*?\/\/.*?)[\"|\'|\)]", string, flags=re.M)
+        for string_href_item in string_href:
+            print(string_href_item)
+            string = string.replace(string_href_item, '/')
+        return string
 
     list_url = {}
-    os.chdir(f'./{chdir_path}')
+    os.chdir(f'{chdir_path}') if os.path.exists(chdir_path) else os.mkdir(f'{chdir_path}')
     print('Print url for download')
     # user_input_url = 'https://sushikisen.com/'
     user_input_url = input()
@@ -162,30 +200,20 @@ def Start():
     os.mkdir(filename)
     os.chdir('./' + filename)
     html_new = str(BeautifulSoup(requests_url_input.content, 'html.parser'))
-    html_new = PreCleaninHTML(html_new)
+    # html_new = PreCleaninHTML(html_new)
 
-    os.mkdir(prename + 'image')
-    os.mkdir(prename + 'text')
+    # os.mkdir(prename + 'image')
+    # os.mkdir(prename + 'text')
 
     hrefs3 = (re.findall(r"\"(.*?)\"", html_new, flags=re.M)) + (
         re.findall(r"'(.*?)'", html_new, flags=re.M))
-    # print(hrefs3)
     print(len(hrefs3))
-    # hrefs3_new = []
     hrefs3_new = {}
     for hrefs3_item in hrefs3:
         if '.' in hrefs3_item and len(hrefs3_item) > 6:
-            # if '.' in hrefs3_item and len(hrefs3_item) > 6 and '/' in hrefs3_item:
             hrefs3_new[hrefs3_item] = ""
-            # hrefs3_new.append(hrefs3_item)
-            # print(hrefs3_item)
-    # with open('1.html','w') as file1:
-    #     file1.write(html_new)
 
     print(len(hrefs3_new))
-    # hrefs = [el for el, _ in groupby(hrefs3_new)]
-    # hrefs2_list = hrefs
-    # print('[LEN HREF]')
     hrefs2_list = []
     for item_hrefs3_new in hrefs3_new:
         hrefs2_list.append(item_hrefs3_new)
@@ -220,8 +248,8 @@ def Start():
 
     print(list_url['index.html'])
 
-    with open('2.html', 'w') as file1:
-        file1.write(html_new)
+    # with open('2.html', 'w') as file1:
+    #     file1.write(html_new)
 
     for img_path in list_url['index.html']:
         print(img_path)
@@ -232,17 +260,18 @@ def Start():
             print('REPLACE --- NO')
         html_new = html_new.replace(img_path, list_url['index.html'][img_path])
 
-    with open('3.html', 'w') as file1:
-        file1.write(html_new)
+    # with open('3.html', 'w') as file1:
+    #     file1.write(html_new)
 
-    hrefs3 = (re.findall(r"href=\"(.*?)[\"|\']", html_new, flags=re.M)) + (
-        re.findall(r"url\((.*?)\)", html_new, flags=re.M)) + (
-                 re.findall(r"src=[\"|\'](.*?)[\"|\']", html_new, flags=re.M))
-    for url_orig in hrefs3:
-        if prename not in url_orig and len(url_orig) > 2:
-            html_new = html_new.replace(url_orig, '')
+    # hrefs3 = (re.findall(r"href=\"(.*?)[\"|\']", html_new, flags=re.M)) + (
+    #     re.findall(r"url\((.*?)\)", html_new, flags=re.M)) + (
+    #              re.findall(r"src=[\"|\'](.*?)[\"|\']", html_new, flags=re.M))
+    # for url_orig in hrefs3:
+    #     if prename not in url_orig and len(url_orig) > 2:
+    #         html_new = html_new.replace(url_orig, '')
 
-    html_new = PostCleaninHTML(html_new)
+    # html_new = PostCleaninHTML(html_new)
+    html_new = new_cleaning_html_file(html_new)
     while '\n\n' in html_new:
         html_new = html_new.replace('\n\n', '\n')
     with open('index.html', 'w') as file_html:
