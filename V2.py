@@ -1,8 +1,5 @@
-import asyncio
 from io import BytesIO
-
 import undetected_chromedriver.v2 as uc
-import json
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -14,6 +11,11 @@ from string import ascii_uppercase
 from itertools import groupby
 from datetime import datetime
 from PIL import Image
+
+from selenium.webdriver.chrome.service import Service
+from chromedriver_py import binary_path # this will get you the path variable
+
+service_object = Service(binary_path)
 
 chdir_path = 'test-selen'
 pagemod = 0  # 1 - full page site
@@ -27,7 +29,7 @@ filenum = 1
 file_num = 0
 page_num = 0
 prename = ''.join(choice(ascii_uppercase) for i in range(random.randint(3, 8)))
-headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) '
+headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) '
                          'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36'}
 
 
@@ -48,7 +50,7 @@ def start():
     print('2')
     options.add_argument(f'--user-agent={headers}')
     print('1')
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(options=options, service=service_object)
     print('0')
     driver.get(first_url)
     print('type random key')
@@ -59,7 +61,7 @@ def start():
     pass1() if os.path.exists(chdir_path) else os.mkdir(f'{chdir_path}')
     os.chdir(f'{chdir_path}')
 
-    def Replace_01(old_str, new_str, orig_str):
+    def replace_str_in_html(old_str, new_str, orig_str):
         print(f"[first pattern]:  {old_str}")
         print(f"[second pattern]: {new_str}")
         if old_str in orig_str:
@@ -73,40 +75,41 @@ def start():
     def pass1():
         pass
 
-    def ReplaseUrl(ReplaceUrl, HrefFile):
-        HrefFile = HrefFile.replace('///', '//')
-        HrefFile = HrefFile.replace('"', '')
-        HrefFile = HrefFile.replace("'", '')
-        if HrefFile[0:2] == '//':
-            HrefFile = 'https:' + HrefFile
-        elif HrefFile[0:4] == 'http':
+    def replace_url_to_download(replace_url, href_file):
+        href_file = href_file.replace('///', '//')
+        href_file = href_file.replace('"', '')
+        href_file = href_file.replace("'", '')
+        href_file = href_file.replace("\\", '')
+        if href_file[0:2] == '//':
+            href_file = 'https:' + href_file
+        elif href_file[0:4] == 'http':
             pass
         else:
-            if HrefFile[0:9] == '../../../':
-                HrefFile = ReplaceUrl + HrefFile[9:]
-            if HrefFile[0:6] == '../../':
-                HrefFile = ReplaceUrl + HrefFile[6:]
-            elif HrefFile[0:4] == '././':
-                HrefFile = ReplaceUrl + HrefFile[4:]
-            elif HrefFile[0:3] == '../':
-                HrefFile = ReplaceUrl + HrefFile[3:]
-            elif HrefFile[0:1] == '/':
-                HrefFile = ReplaceUrl + HrefFile[1:]
-            elif HrefFile[0:1] == ' ':
-                HrefFile = ReplaceUrl + HrefFile[1:]
-            elif HrefFile[0:2] == './':
-                HrefFile = ReplaceUrl + HrefFile[2:]
-            elif HrefFile[0:3] == '/-/':
-                HrefFile = ReplaceUrl + HrefFile[3:]
+            if href_file[0:9] == '../../../':
+                href_file = replace_url + href_file[9:]
+            if href_file[0:6] == '../../':
+                href_file = replace_url + href_file[6:]
+            elif href_file[0:4] == '././':
+                href_file = replace_url + href_file[4:]
+            elif href_file[0:3] == '../':
+                href_file = replace_url + href_file[3:]
+            elif href_file[0:1] == '/':
+                href_file = replace_url + href_file[1:]
+            elif href_file[0:1] == ' ':
+                href_file = replace_url + href_file[1:]
+            elif href_file[0:2] == './':
+                href_file = replace_url + href_file[2:]
+            elif href_file[0:3] == '/-/':
+                href_file = replace_url + href_file[3:]
             else:
-                HrefFile = ReplaceUrl + HrefFile
-        return HrefFile
+                href_file = replace_url + href_file
+        return href_file
 
-    def CleaninHTML(html_new):
+    def cleaning_html(html_new):
         print('---- Cleaning ----\n')
         html_new = re.sub(r"((http(.*?))([\w|\/]))", '', html_new, flags=re.M)
         print('clean - http')
-        html_new = re.sub(r'href="/.*?"', '', html_new, flags=re.M)
+        html_new = re.sub(r'"://.*?"', '/', html_new, flags=re.M)
         html_new = re.sub(r'((srcset=[\"|\'])([\s\S]*?)[\"])', ' ', html_new, flags=re.M)
         html_new = re.sub(r'((alt=[\"|\'])([\s\S]*?)[\"])', ' ', html_new, flags=re.M)
         html_new = re.sub(r'loading="lazy"', '', html_new, flags=re.M)
@@ -116,13 +119,15 @@ def start():
         html_new = re.sub(r'</a>', '</span>', html_new, flags=re.M)
         return html_new
 
-    def SaveUrl(url_for_donload, urls, html_new, url_type):
+    def save_content_on_url(url_for_donload, urls, html_new, url_type):
         global file_num, page_num
         urls = urls.replace('"', '')
         urls = urls.replace("'", "")
         urls = urls.split(' ')[0]
-        url_down = ReplaseUrl(url_for_donload, urls)
-        # url_down = ReplaseUrl(url_for_donload, urls)
+        print(urls)
+        url_down = replace_url_to_download(url_for_donload, urls)
+        print(url_down)
+        # url_down = replace_url_to_download(url_for_donload, urls)
         file_num += 1
         # print('\n')
         # print(f'[first url]: {urls}')
@@ -133,7 +138,7 @@ def start():
             print(f"[Content-Type]: {content_type}")
 
             if 'data:image' in urls:
-                html_new = Replace_01(urls, '', html_new)
+                html_new = replace_str_in_html(urls, '', html_new)
                 print(f"[data:image DLT]")
 
             elif 'css' in content_type or 'image' in content_type:
@@ -149,81 +154,57 @@ def start():
                 if url[0:1] == '/':
                     url = url[1:]
 
-                paths = url.split('/')[:-1]
+                paths = '/'.join(url.split('/')[:-1])
                 file_name = url.split('/')[-1]
-                all_path = ''
-                for path in paths:
-                    all_path = all_path + '/' + path
-                    if all_path[:1] == '/':
-                        all_path = all_path[1:]
-                    if not os.path.exists(all_path):
-                        os.mkdir(all_path)
                 print(url)
-                if 'webp' in content_type:
-                    url = ('.'.join(url.split('.')[:-1])) + '.png'
-                    image = Image.open(BytesIO(req.content))
-                    image.save(f'{url}', format='png')
-                else:
-                    with open(f'{url}', 'wb') as file:
-                        file.write(req.content)
-                # with open(file, 'wb') as outfile:
-                #     outfile.write(req.content)
-                # if url_type == 1:
-                #     html_new = Replace_01(urls, '/' + url, html_new)
-                # else:
-                html_new = Replace_01(urls, url, html_new)
-
-            elif ('html' in content_type) and (filename in url_down) and (int(len(urls)) > 3):
-                if pagemod == 1:
-                    print(f'[this is page]: pagemod = 1')
-                    print(f"[save fail patch]: {prename + str(page_num) + 'page/index.html'}")
-                    page_num += 1
-                    html_new = html_new.replace(urls, '/' + prename + str(page_num) + 'page/', 1)
-                    # html_new = re.sub(url_start, '/'+prename+str(page_num)+'page/', html_new, count=1, flags=re.M)
-                    os.mkdir(prename + str(page_num) + 'page')
-                    pg_req = requests.get(url_down, headers=headers)
-                    soup = BeautifulSoup(pg_req.content, 'html.parser')
-                    pg_req = str(soup)
-                    pg_req = re.sub(r"href=[\"|\'](.*?)[\"|\']", '/', pg_req, flags=re.M)
-                    pg_req = re.sub(r"scr=[\"|\'](.*?)[\"|\']", '/', pg_req, flags=re.M)
-                    pg_req = CleaninHTML(pg_req)
-                    with open(prename + str(page_num) + 'page/index.html', 'w') as pg_file:
-                        pg_file.write(pg_req)
-                else:
-                    print(f'[this is page]: pagemod = 0')
-
+                print(f"[path]: {paths}")
+                print(f"[file_name]: {file_name}")
+                if file_name.lower() != 'css':
+                    if len(file_name) >= 2:
+                        if len(paths) >= 2:
+                            try:
+                                os.makedirs(paths)
+                            except FileExistsError:
+                                pass
+                        if 'webp' in content_type:
+                            url = ('.'.join(url.split('.')[:-1])) + '.png'
+                            image = Image.open(BytesIO(req.content))
+                            image.save(f'{url}', format='png')
+                        else:
+                            with open(f'{url}', 'wb') as file:
+                                file.write(req.content)
+                html_new = replace_str_in_html(urls, url, html_new)
             else:
                 print('[INVALID TYPE FILE]')
-                html_new = Replace_01(urls, '', html_new)
+                html_new = replace_str_in_html(urls, '', html_new)
         except requests.exceptions.SSLError:
             print('[SSL ERROR]')
-            html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         except KeyError:
             print('[KeyError ERROR]')
-            html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         except requests.exceptions.ConnectionError:
             print('[requests.exceptions.ConnectionError ERROR]')
-            html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         except requests.exceptions.TooManyRedirects:
             print('[requests.exceptions.TooManyRedirects ERROR]')
-            html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         except requests.exceptions.InvalidURL:
             print('[requests.exceptions.InvalidURL ERROR]')
-            html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         except requests.exceptions.ReadTimeout:
             print('[requests.exceptions.ReadTimeout ERROR]')
-            html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         except requests.exceptions.InvalidSchema:
             print('[requests.exceptions.InvalidSchema ERROR]')
-            html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         except requests.exceptions.ChunkedEncodingError:
             print('[requests.exceptions.ChunkedEncodingError ERROR]')
-            html_new = Replace_01(urls, '', html_new)
-        # html_new = Replace_01(urls, '', html_new)
+            html_new = replace_str_in_html(urls, '', html_new)
         return html_new
 
-    def StartParsHTML():
-        global filenum, url, url_for_donload, filename, html_new, respown, soup, pagenum, url_type
+    def start_pars_html():
+        global filenum, url_type
         url = first_url
         url_for_donload = url.split('/')
         url_for_donload = "/".join(url_for_donload[0:3]) + '/'
@@ -258,20 +239,8 @@ def start():
         html_new = re.sub(r"<noscript[\s\S]*?>[\s\S]*?<\/noscript>", '', html_new, flags=re.M)
         print('clean - noscript')
         html_new = re.sub(r'onclick=".*?"', '', html_new, flags=re.M)
-        # html_new = re.sub(r'<meta.*?>', '', html_new, flags=re.M)
         html_new = re.sub(r'[\'|\"|\(](data:image.*?)[\'|\"|\)]', '', html_new, flags=re.M)
 
-        # os.mkdir(prename + 'image')
-        # os.mkdir(prename + 'text')
-
-        # style_in_html = (re.findall(r"<style[\s\S]*?>([\s\S]*?)<\/style>", html_new, flags=re.M))
-        # html_new = re.sub(r'<style[\s\S]*?>([\s\S]*?)<\/style>', '', html_new, flags=re.M)
-
-        # css_style_text = ''
-        # for css_item in style_in_html:
-        #     css_style_text = css_style_text+css_item
-        # with open(prename + 'text' + '/' + prename + 'style.css', 'w') as pg_file:
-        #     pg_file.write(css_style_text)
 
         if pagemod == 1:
             hrefs = (re.findall(r"href=\"(.*?)[\"|\']", html_new, flags=re.M)) + (
@@ -290,13 +259,12 @@ def start():
         # for href1 in hrefs:
         #     if ' ' in href1:
         #         href2 = href1.split(' ')[0]
-        #         html_new = Replace_01(href1, href2, html_new)
+        #         html_new = replace_str_in_html(href1, href2, html_new)
         #         hrefs2_list.remove(href1)
         #         hrefs2_list.append(href2)
         print('[LEN HREF]')
         for href1 in hrefs:
             if len(href1) <= 6:
-                # href2 = href1.split(' ')[0]
                 hrefs2_list.remove(href1)
 
         hrefs2_list = sorted(hrefs2_list, key=len)
@@ -304,52 +272,10 @@ def start():
         print('\ndownload hrefs:')
         for url_i in hrefs2_list:
             print(f"\n[{str(hrefs2_list.index(url_i))}/{str(len(hrefs2_list))}]")
-            html_new = SaveUrl(url_for_donload, url_i, html_new, url_type)
+            html_new = save_content_on_url(url_for_donload, url_i, html_new, url_type)
 
-        # print('[DLT HREFS]')
-        # hrefs_post = re.findall(r"href=\"\S+[\"]", html_new, flags=re.M)
-        # for hrefs_post_item in hrefs_post:
-        #     if prename not in hrefs_post_item:
-        #         html_new = Replace_01(hrefs_post_item, '', html_new)
+        html_new = cleaning_html(html_new)
 
-        # url_type+=1
-        # print('\ndownload file in css:') if log_mod == 1 else pass1()
-        # list_css = os.listdir(prename + 'text')
-        # for css_file in list_css:
-        #     if 'DS_Store' not in css_file:
-        #         print(f"\n[{str(list_css.index(css_file))}/{str(len(list_css))}]")
-        #         print(css_file)
-        #         try:
-        #             with open(prename + 'text/'+css_file, 'r') as file_css:
-        #                 text_css = file_css.read()
-        #             url_in_css = re.findall(r"url[\(]([\s\S]*?)[\)]", text_css, flags=re.M)
-        #             for url_in_css_item in url_in_css:
-        #                 text_css = asyncio.run(SaveUrl(url_for_donload, url_in_css_item, text_css, url_type))
-        #                 # text_css = text_css.replace('url(', 'url(/')
-        #                 # text_css = text_css.replace(';', ';\n')
-        #                 # text_css = text_css.replace('}', '}\n\n')
-        #                 # text_css = text_css.replace('{', '{\n')
-        #                 # while '\n\n' in text_css:
-        #                 #     text_css = text_css.replace('\n\n', '\n')
-        #             with open(prename + 'text/'+css_file, 'w') as file_css_2:
-        #                 file_css_2.write(text_css)
-        #         except UnicodeDecodeError:
-        #             print('UnicodeDecodeError: [ERROR]')
-
-        html_new = CleaninHTML(html_new)
-
-        # if clean_brand == 1:
-        #     html_new = Clean_Brands(html_new)
-
-        # link_rels = re.findall(r"(<link.*?>)", html_new, flags=re.M)
-        # for link in link_rels:
-        #     if prename in link:
-        #         pass
-        #     else:
-        #         html_new = html_new.replace(link, '')
-
-        # html_new = html_new.replace('</title>',
-        #                             f'</title>\n<link href="{prename}text/{prename}style.css" rel="stylesheet" type="text/css"/>')
         html_new = html_new.replace('</title>',
                                     f'</title>\n<meta charset="utf-8"/>')
 
@@ -361,7 +287,7 @@ def start():
 
         print('\n---- ' + filename + ' ----\n')
 
-    StartParsHTML()
+    start_pars_html()
     print('\nall work time - ' + str(datetime.now() - now))
     print('\nwork time download - ' + str(datetime.now() - start_time))
 
